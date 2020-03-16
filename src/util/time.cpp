@@ -78,7 +78,7 @@ int64_t GetSystemTimeInSeconds()
 std::string FormatISO8601DateTime(int64_t nTime) {
     struct tm ts;
     time_t time_val = nTime;
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(__MINGW64_VERSION_MAJOR)
     if (gmtime_s(&ts, &time_val) != 0) {
 #else
     if (gmtime_r(&time_val, &ts) == nullptr) {
@@ -91,7 +91,7 @@ std::string FormatISO8601DateTime(int64_t nTime) {
 std::string FormatISO8601Date(int64_t nTime) {
     struct tm ts;
     time_t time_val = nTime;
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(__MINGW64_VERSION_MAJOR)
     if (gmtime_s(&ts, &time_val) != 0) {
 #else
     if (gmtime_r(&time_val, &ts) == nullptr) {
