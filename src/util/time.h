@@ -6,9 +6,9 @@
 #ifndef BITCOIN_UTIL_TIME_H
 #define BITCOIN_UTIL_TIME_H
 
+#include <chrono>
 #include <stdint.h>
 #include <string>
-#include <chrono>
 
 void UninterruptibleSleep(const std::chrono::microseconds& n);
 
