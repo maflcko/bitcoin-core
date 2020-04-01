@@ -20,9 +20,9 @@
 #include <boost/test/unit_test.hpp>
 #include <univalue.h>
 
-extern UniValue importmulti(const JSONRPCRequest& request);
-extern UniValue dumpwallet(const JSONRPCRequest& request);
-extern UniValue importwallet(const JSONRPCRequest& request);
+RPCMan importmulti();
+RPCMan dumpwallet();
+RPCMan importwallet();
 
 BOOST_FIXTURE_TEST_SUITE(wallet_tests, WalletTestingSetup)
 
@@ -173,7 +173,7 @@ BOOST_FIXTURE_TEST_CASE(importmulti_rescan, TestChain100Setup)
         request.params.setArray();
         request.params.push_back(keys);
 
-        UniValue response = importmulti(request);
+        UniValue response = CALL_RPC_METHOD(importmulti, request);
         BOOST_CHECK_EQUAL(response.write(),
             strprintf("[{\"success\":false,\"error\":{\"code\":-1,\"message\":\"Rescan failed for key with creation "
                       "timestamp %d. There was an error reading a block from time %d, which is after or within %d "
@@ -225,7 +225,7 @@ BOOST_FIXTURE_TEST_CASE(importwallet_rescan, TestChain100Setup)
         request.params.setArray();
         request.params.push_back(backup_file);
         AddWallet(wallet);
-        ::dumpwallet(request);
+        CALL_RPC_METHOD(::dumpwallet, request);
         RemoveWallet(wallet);
     }
 
@@ -239,7 +239,7 @@ BOOST_FIXTURE_TEST_CASE(importwallet_rescan, TestChain100Setup)
         request.params.setArray();
         request.params.push_back(backup_file);
         AddWallet(wallet);
-        ::importwallet(request);
+        CALL_RPC_METHOD(::importwallet, request);
         RemoveWallet(wallet);
 
         LOCK(wallet->cs_wallet);

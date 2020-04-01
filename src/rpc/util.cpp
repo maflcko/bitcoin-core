@@ -410,8 +410,9 @@ struct Sections {
     }
 };
 
-RPCHelpMan::RPCHelpMan(std::string name, std::string description, std::vector<RPCArg> args, RPCResults results, RPCExamples examples)
-    : m_name{std::move(name)},
+RPCMan::RPCMan(std::string name, std::string description, std::vector<RPCArg> args, RPCResults results, RPCExamples examples, RPCMethod fun)
+    : m_fun{std::move(fun)},
+      m_name{std::move(name)},
       m_description{std::move(description)},
       m_args{std::move(args)},
       m_results{std::move(results)},
@@ -445,7 +446,7 @@ std::string RPCExamples::ToDescriptionString() const
     return m_examples.empty() ? m_examples : "\nExamples:\n" + m_examples;
 }
 
-bool RPCHelpMan::IsValidNumArgs(size_t num_args) const
+bool RPCMan::IsValidNumArgs(size_t num_args) const
 {
     size_t num_required_args = 0;
     for (size_t n = m_args.size(); n > 0; --n) {
@@ -456,7 +457,8 @@ bool RPCHelpMan::IsValidNumArgs(size_t num_args) const
     }
     return num_required_args <= num_args && num_args <= m_args.size();
 }
-std::string RPCHelpMan::ToString() const
+
+std::string RPCMan::ToString() const
 {
     std::string ret;
 

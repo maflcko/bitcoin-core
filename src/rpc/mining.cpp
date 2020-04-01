@@ -79,9 +79,9 @@ static UniValue GetNetworkHashPS(int lookup, int height) {
     return workDiff.getdouble() / timeDiff;
 }
 
-static UniValue getnetworkhashps(const JSONRPCRequest& request)
+static RPCMan getnetworkhashps()
 {
-            RPCHelpMan{"getnetworkhashps",
+    return RPCMan{"getnetworkhashps",
                 "\nReturns the estimated network hashes per second based on the last n blocks.\n"
                 "Pass in [blocks] to override # of blocks, -1 specifies since last difficulty change.\n"
                 "Pass in [height] to estimate the network speed at the time when a certain block was found.\n",
@@ -95,10 +95,14 @@ static UniValue getnetworkhashps(const JSONRPCRequest& request)
                     HelpExampleCli("getnetworkhashps", "")
             + HelpExampleRpc("getnetworkhashps", "")
                 },
-            }.Check(request);
+        [&](const RPCMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    self.Check(request);
 
     LOCK(cs_main);
     return GetNetworkHashPS(!request.params[0].isNull() ? request.params[0].get_int() : 120, !request.params[1].isNull() ? request.params[1].get_int() : -1);
+},
+    };
 }
 
 static UniValue generateBlocks(const CTxMemPool& mempool, const CScript& coinbase_script, int nGenerate, uint64_t nMaxTries)
@@ -142,9 +146,9 @@ static UniValue generateBlocks(const CTxMemPool& mempool, const CScript& coinbas
     return blockHashes;
 }
 
-static UniValue generatetodescriptor(const JSONRPCRequest& request)
+static RPCMan generatetodescriptor()
 {
-    RPCHelpMan{
+    return RPCMan{
         "generatetodescriptor",
         "\nMine blocks immediately to a specified descriptor (before the RPC call returns)\n",
         {
@@ -160,8 +164,9 @@ static UniValue generatetodescriptor(const JSONRPCRequest& request)
         },
         RPCExamples{
             "\nGenerate 11 blocks to mydesc\n" + HelpExampleCli("generatetodescriptor", "11 \"mydesc\"")},
-    }
-        .Check(request);
+        [&](const RPCMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    self.Check(request);
 
     const int num_blocks{request.params[0].get_int()};
     const int64_t max_tries{request.params[2].isNull() ? 1000000 : request.params[2].get_int()};
@@ -187,11 +192,13 @@ static UniValue generatetodescriptor(const JSONRPCRequest& request)
     CHECK_NONFATAL(coinbase_script.size() == 1);
 
     return generateBlocks(mempool, coinbase_script.at(0), num_blocks, max_tries);
+},
+    };
 }
 
-static UniValue generatetoaddress(const JSONRPCRequest& request)
+static RPCMan generatetoaddress()
 {
-            RPCHelpMan{"generatetoaddress",
+    return RPCMan{"generatetoaddress",
                 "\nMine blocks immediately to a specified address (before the RPC call returns)\n",
                 {
                     {"nblocks", RPCArg::Type::NUM, RPCArg::Optional::NO, "How many blocks are generated immediately."},
@@ -209,7 +216,9 @@ static UniValue generatetoaddress(const JSONRPCRequest& request)
             + "If you are running the bitcoin core wallet, you can get a new address to send the newly generated bitcoin to with:\n"
             + HelpExampleCli("getnewaddress", "")
                 },
-            }.Check(request);
+        [&](const RPCMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    self.Check(request);
 
     int nGenerate = request.params[0].get_int();
     uint64_t nMaxTries = 1000000;
@@ -227,11 +236,13 @@ static UniValue generatetoaddress(const JSONRPCRequest& request)
     CScript coinbase_script = GetScriptForDestination(destination);
 
     return generateBlocks(mempool, coinbase_script, nGenerate, nMaxTries);
+},
+    };
 }
 
-static UniValue getmininginfo(const JSONRPCRequest& request)
+static RPCMan getmininginfo()
 {
-            RPCHelpMan{"getmininginfo",
+    return RPCMan{"getmininginfo",
                 "\nReturns a json object containing mining-related information.",
                 {},
                 RPCResult{
@@ -250,7 +261,9 @@ static UniValue getmininginfo(const JSONRPCRequest& request)
                     HelpExampleCli("getmininginfo", "")
             + HelpExampleRpc("getmininginfo", "")
                 },
-            }.Check(request);
+        [&](const RPCMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    self.Check(request);
 
     LOCK(cs_main);
     const CTxMemPool& mempool = EnsureMemPool();
@@ -260,18 +273,20 @@ static UniValue getmininginfo(const JSONRPCRequest& request)
     if (BlockAssembler::m_last_block_weight) obj.pushKV("currentblockweight", *BlockAssembler::m_last_block_weight);
     if (BlockAssembler::m_last_block_num_txs) obj.pushKV("currentblocktx", *BlockAssembler::m_last_block_num_txs);
     obj.pushKV("difficulty",       (double)GetDifficulty(::ChainActive().Tip()));
-    obj.pushKV("networkhashps",    getnetworkhashps(request));
+    obj.pushKV("networkhashps",    CALL_RPC_METHOD(getnetworkhashps, request));
     obj.pushKV("pooledtx",         (uint64_t)mempool.size());
     obj.pushKV("chain",            Params().NetworkIDString());
     obj.pushKV("warnings",         GetWarnings(false));
     return obj;
+},
+    };
 }
 
 
 // NOTE: Unlike wallet RPC (which use BTC values), mining RPCs follow GBT (BIP 22) in using satoshi amounts
-static UniValue prioritisetransaction(const JSONRPCRequest& request)
+static RPCMan prioritisetransaction()
 {
-            RPCHelpMan{"prioritisetransaction",
+    return RPCMan{"prioritisetransaction",
                 "Accepts the transaction into mined blocks at a higher (or lower) priority\n",
                 {
                     {"txid", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The transaction id."},
@@ -288,7 +303,9 @@ static UniValue prioritisetransaction(const JSONRPCRequest& request)
                     HelpExampleCli("prioritisetransaction", "\"txid\" 0.0 10000")
             + HelpExampleRpc("prioritisetransaction", "\"txid\", 0.0, 10000")
                 },
-            }.Check(request);
+        [&](const RPCMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    self.Check(request);
 
     LOCK(cs_main);
 
@@ -301,6 +318,8 @@ static UniValue prioritisetransaction(const JSONRPCRequest& request)
 
     EnsureMemPool().PrioritiseTransaction(hash, nAmount);
     return true;
+},
+    };
 }
 
 
@@ -332,9 +351,9 @@ static std::string gbt_vb_name(const Consensus::DeploymentPos pos) {
     return s;
 }
 
-static UniValue getblocktemplate(const JSONRPCRequest& request)
+static RPCMan getblocktemplate()
 {
-            RPCHelpMan{"getblocktemplate",
+    return RPCMan{"getblocktemplate",
                 "\nIf the request parameters include a 'mode' key, that is used to explicitly select between the default 'template' request or a 'proposal'.\n"
                 "It returns data needed to construct a block to work on.\n"
                 "For full specification, see BIPs 22, 23, 9, and 145:\n"
@@ -416,7 +435,9 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
                     HelpExampleCli("getblocktemplate", "'{\"rules\": [\"segwit\"]}'")
             + HelpExampleRpc("getblocktemplate", "{\"rules\": [\"segwit\"]}")
                 },
-            }.Check(request);
+        [&](const RPCMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    self.Check(request);
 
     LOCK(cs_main);
 
@@ -722,6 +743,8 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
     }
 
     return result;
+},
+    };
 }
 
 class submitblock_StateCatcher : public CValidationInterface
@@ -742,10 +765,10 @@ protected:
     }
 };
 
-static UniValue submitblock(const JSONRPCRequest& request)
+static RPCMan submitblock()
 {
     // We allow 2 arguments for compliance with BIP22. Argument 2 is ignored.
-            RPCHelpMan{"submitblock",
+    return RPCMan{"submitblock",
                 "\nAttempts to submit new block to network.\n"
                 "See https://en.bitcoin.it/wiki/BIP_0022 for full specification.\n",
                 {
@@ -757,7 +780,9 @@ static UniValue submitblock(const JSONRPCRequest& request)
                     HelpExampleCli("submitblock", "\"mydata\"")
             + HelpExampleRpc("submitblock", "\"mydata\"")
                 },
-            }.Check(request);
+        [&](const RPCMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    self.Check(request);
 
     std::shared_ptr<CBlock> blockptr = std::make_shared<CBlock>();
     CBlock& block = *blockptr;
@@ -803,11 +828,13 @@ static UniValue submitblock(const JSONRPCRequest& request)
         return "inconclusive";
     }
     return BIP22ValidationResult(sc.state);
+},
+    };
 }
 
-static UniValue submitheader(const JSONRPCRequest& request)
+static RPCMan submitheader()
 {
-            RPCHelpMan{"submitheader",
+    return RPCMan{"submitheader",
                 "\nDecode the given hexdata as a header and submit it as a candidate chain tip if valid."
                 "\nThrows when the header is invalid.\n",
                 {
@@ -819,7 +846,9 @@ static UniValue submitheader(const JSONRPCRequest& request)
                     HelpExampleCli("submitheader", "\"aabbcc\"") +
                     HelpExampleRpc("submitheader", "\"aabbcc\"")
                 },
-            }.Check(request);
+        [&](const RPCMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    self.Check(request);
 
     CBlockHeader h;
     if (!DecodeHexBlockHeader(h, request.params[0].get_str())) {
@@ -839,11 +868,13 @@ static UniValue submitheader(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_VERIFY_ERROR, state.ToString());
     }
     throw JSONRPCError(RPC_VERIFY_ERROR, state.GetRejectReason());
+},
+    };
 }
 
-static UniValue estimatesmartfee(const JSONRPCRequest& request)
+static RPCMan estimatesmartfee()
 {
-            RPCHelpMan{"estimatesmartfee",
+    return RPCMan{"estimatesmartfee",
                 "\nEstimates the approximate fee per kilobyte needed for a transaction to begin\n"
                 "confirmation within conf_target blocks if possible and return the number of blocks\n"
                 "for which the estimate is valid. Uses virtual transaction size as defined\n"
@@ -877,7 +908,9 @@ static UniValue estimatesmartfee(const JSONRPCRequest& request)
                 RPCExamples{
                     HelpExampleCli("estimatesmartfee", "6")
                 },
-            }.Check(request);
+        [&](const RPCMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    self.Check(request);
 
     RPCTypeCheck(request.params, {UniValue::VNUM, UniValue::VSTR});
     RPCTypeCheckArgument(request.params[0], UniValue::VNUM);
@@ -904,11 +937,13 @@ static UniValue estimatesmartfee(const JSONRPCRequest& request)
     }
     result.pushKV("blocks", feeCalc.returnedTarget);
     return result;
+},
+    };
 }
 
-static UniValue estimaterawfee(const JSONRPCRequest& request)
+static RPCMan estimaterawfee()
 {
-            RPCHelpMan{"estimaterawfee",
+    return RPCMan{"estimaterawfee",
                 "\nWARNING: This interface is unstable and may disappear or change!\n"
                 "\nWARNING: This is an advanced API call that is tightly coupled to the specific\n"
                 "         implementation of fee estimation. The parameters it can be called with\n"
@@ -960,7 +995,9 @@ static UniValue estimaterawfee(const JSONRPCRequest& request)
                 RPCExamples{
                     HelpExampleCli("estimaterawfee", "6 0.9")
                 },
-            }.Check(request);
+        [&](const RPCMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    self.Check(request);
 
     RPCTypeCheck(request.params, {UniValue::VNUM, UniValue::VNUM}, true);
     RPCTypeCheckArgument(request.params[0], UniValue::VNUM);
@@ -1020,6 +1057,8 @@ static UniValue estimaterawfee(const JSONRPCRequest& request)
         result.pushKV(StringForFeeEstimateHorizon(horizon), horizon_result);
     }
     return result;
+},
+    };
 }
 
 // clang-format off

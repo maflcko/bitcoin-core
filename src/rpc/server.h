@@ -8,11 +8,12 @@
 
 #include <amount.h>
 #include <rpc/request.h>
+#include <rpc/util.h>
 
+#include <functional>
 #include <map>
 #include <stdint.h>
 #include <string>
-#include <functional>
 
 #include <univalue.h>
 
@@ -81,7 +82,7 @@ void RPCUnsetTimerInterface(RPCTimerInterface *iface);
  */
 void RPCRunLater(const std::string& name, std::function<void()> func, int64_t nSeconds);
 
-typedef UniValue(*rpcfn_type)(const JSONRPCRequest& jsonRequest);
+typedef RPCMan (*rpcfn_type)();
 
 class CRPCCommand
 {
@@ -101,7 +102,7 @@ public:
     //! Simplified constructor taking plain rpcfn_type function pointer.
     CRPCCommand(const char* category, const char* name, rpcfn_type fn, std::initializer_list<const char*> args)
         : CRPCCommand(category, name,
-                      [fn](const JSONRPCRequest& request, UniValue& result, bool) { result = fn(request); return true; },
+                      [fn](const JSONRPCRequest& request, UniValue& result, bool) { result = CALL_RPC_METHOD(fn, request); return true; },
                       {args.begin(), args.end()}, intptr_t(fn))
     {
     }
@@ -114,7 +115,7 @@ public:
 };
 
 /**
- * Bitcoin RPC command dispatcher.
+ * RPC command dispatcher.
  */
 class CRPCTable
 {

@@ -316,10 +316,13 @@ struct RPCExamples {
     std::string ToDescriptionString() const;
 };
 
-class RPCHelpMan
+#define CALL_RPC_METHOD(rpc_name, json_request) [&] { const RPCMan& man = rpc_name(); return man.m_fun(man, json_request); }()
+
+class RPCMan
 {
 public:
-    RPCHelpMan(std::string name, std::string description, std::vector<RPCArg> args, RPCResults results, RPCExamples examples);
+    using RPCMethod = std::function<UniValue(const RPCMan&, const JSONRPCRequest&)>;
+    RPCMan(std::string name, std::string description, std::vector<RPCArg> args, RPCResults results, RPCExamples examples, RPCMethod fun);
 
     std::string ToString() const;
     /** If the supplied number of args is neither too small nor too high */
@@ -333,6 +336,8 @@ public:
             throw std::runtime_error(ToString());
         }
     }
+
+    const RPCMethod m_fun;
 
 private:
     const std::string m_name;
