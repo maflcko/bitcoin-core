@@ -611,14 +611,25 @@ static RPCMan logging()
     };
 }
 
-static RPCMan echo()
+static RPCMan echo(const std::string& name)
 {
-    return RPCMan{"echo|echojson ...",
+    return RPCMan{name,
                 "\nSimply echo back the input arguments. This command is for testing.\n"
                 "\nIt will return an internal bug report when exactly 100 arguments are passed.\n"
                 "\nThe difference between echo and echojson is that echojson has argument conversion enabled in the client-side table in "
                 "bitcoin-cli and the GUI. There is no server-side difference.",
-                {},
+                {
+                    {"arg0", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
+                    {"arg1", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
+                    {"arg2", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
+                    {"arg3", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
+                    {"arg4", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
+                    {"arg5", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
+                    {"arg6", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
+                    {"arg7", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
+                    {"arg8", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
+                    {"arg9", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
+                },
                 RPCResult{RPCResult::Type::NONE, "", "Returns whatever was passed in"},
                 RPCExamples{""},
         [&](const RPCMan& self, const JSONRPCRequest& request) -> UniValue
@@ -631,6 +642,9 @@ static RPCMan echo()
 },
     };
 }
+
+static RPCMan echo() { return echo("echo"); }
+static RPCMan echojson() { return echo("echojson"); }
 
 // clang-format off
 static const CRPCCommand commands[] =
@@ -649,7 +663,7 @@ static const CRPCCommand commands[] =
     { "hidden",             "setmocktime",            &setmocktime,            {"timestamp"}},
     { "hidden",             "mockscheduler",          &mockscheduler,          {"delta_time"}},
     { "hidden",             "echo",                   &echo,                   {"arg0","arg1","arg2","arg3","arg4","arg5","arg6","arg7","arg8","arg9"}},
-    { "hidden",             "echojson",               &echo,                   {"arg0","arg1","arg2","arg3","arg4","arg5","arg6","arg7","arg8","arg9"}},
+    { "hidden",             "echojson",               &echojson,               {"arg0","arg1","arg2","arg3","arg4","arg5","arg6","arg7","arg8","arg9"}},
 };
 // clang-format on
 

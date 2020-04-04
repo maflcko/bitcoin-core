@@ -13,6 +13,9 @@
 
 #include <tuple>
 
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/split.hpp>
+
 const std::string UNIX_EPOCH_TIME = "UNIX epoch time";
 const std::string EXAMPLE_ADDRESS[2] = {"bc1q09vm5lfy0j5reeulh4x5752q25uqqvz34hufdl", "bc1q02ad21edsxd23d32dfgqqsz4vv4nmtfzuklhy3"};
 
@@ -330,7 +333,7 @@ struct Sections {
             if (outer_type == OuterType::NONE) return; // Nothing more to do for non-recursive types on first recursion
             auto left = indent;
             if (arg.m_type_str.size() != 0 && push_name) {
-                left += "\"" + arg.m_name + "\": " + arg.m_type_str.at(0);
+                left += "\"" + arg.GetFirstName() + "\": " + arg.m_type_str.at(0);
             } else {
                 left += push_name ? arg.ToStringObj(/* oneline */ false) : arg.ToString(/* oneline */ false);
             }
@@ -341,7 +344,7 @@ struct Sections {
         case RPCArg::Type::OBJ:
         case RPCArg::Type::OBJ_USER_KEYS: {
             const auto right = outer_type == OuterType::NONE ? "" : arg.ToDescriptionString();
-            PushSection({indent + (push_name ? "\"" + arg.m_name + "\": " : "") + "{", right});
+            PushSection({indent + (push_name ? "\"" + arg.GetFirstName() + "\": " : "") + "{", right});
             for (const auto& arg_inner : arg.m_inner) {
                 Push(arg_inner, current_indent + 2, OuterType::OBJ);
             }
@@ -353,7 +356,7 @@ struct Sections {
         }
         case RPCArg::Type::ARR: {
             auto left = indent;
-            left += push_name ? "\"" + arg.m_name + "\": " : "";
+            left += push_name ? "\"" + arg.GetFirstName() + "\": " : "";
             left += "[";
             const auto right = outer_type == OuterType::NONE ? "" : arg.ToDescriptionString();
             PushSection({left, right});
@@ -420,9 +423,23 @@ RPCMan::RPCMan(std::string name, std::string description, std::vector<RPCArg> ar
 {
     std::set<std::string> named_args;
     for (const auto& arg : m_args) {
+        std::vector<std::string> names;
+        boost::split(names, arg.m_names, boost::is_any_of("|"));
         // Should have unique named arguments
-        CHECK_NONFATAL(named_args.insert(arg.m_name).second);
+        for (const std::string& name : names) {
+            CHECK_NONFATAL(named_args.insert(name).second);
+        }
     }
+}
+
+RPCMan::RPCMan(std::string name, std::string description, HiddenArg hidden_arg, RPCResults results, RPCExamples examples, RPCMethod fun)
+    : m_fun{std::move(fun)},
+      m_name{std::move(name)},
+      m_description{std::move(description)},
+      m_hidden_arg{std::move(hidden_arg.m_name)},
+      m_results{std::move(results)},
+      m_examples{std::move(examples)}
+{
 }
 
 std::string RPCResults::ToDescriptionString() const
@@ -458,6 +475,16 @@ bool RPCMan::IsValidNumArgs(size_t num_args) const
     return num_required_args <= num_args && num_args <= m_args.size();
 }
 
+std::vector<std::string> RPCMan::GetArgNames() const
+{
+    if (!m_hidden_arg.empty()) return {m_hidden_arg};
+    std::vector<std::string> ret;
+    for (const auto& arg : m_args) {
+        ret.emplace_back(arg.m_names);
+    }
+    return ret;
+}
+
 std::string RPCMan::ToString() const
 {
     std::string ret;
@@ -491,7 +518,7 @@ std::string RPCMan::ToString() const
         if (i == 0) ret += "\nArguments:\n";
 
         // Push named argument name and description
-        sections.m_sections.emplace_back(::ToString(i + 1) + ". " + arg.m_name, arg.ToDescriptionString());
+        sections.m_sections.emplace_back(::ToString(i + 1) + ". " + arg.GetFirstName(), arg.ToDescriptionString());
         sections.m_max_pad = std::max(sections.m_max_pad, sections.m_sections.back().m_left.size());
 
         // Recursively push nested args
@@ -505,6 +532,12 @@ std::string RPCMan::ToString() const
     // Examples
     ret += m_examples.ToDescriptionString();
 
+    return ret;
+}
+
+std::string RPCArg::GetFirstName() const
+{
+    auto ret = m_names.substr(0, m_names.find("|"));
     return ret;
 }
 
@@ -683,7 +716,7 @@ std::string RPCArg::ToStringObj(const bool oneline) const
 {
     std::string res;
     res += "\"";
-    res += m_name;
+    res += GetFirstName();
     if (oneline) {
         res += "\":";
     } else {
@@ -725,13 +758,13 @@ std::string RPCArg::ToString(const bool oneline) const
     switch (m_type) {
     case Type::STR_HEX:
     case Type::STR: {
-        return "\"" + m_name + "\"";
+        return "\"" + GetFirstName() + "\"";
     }
     case Type::NUM:
     case Type::RANGE:
     case Type::AMOUNT:
     case Type::BOOL: {
-        return m_name;
+        return GetFirstName();
     }
     case Type::OBJ:
     case Type::OBJ_USER_KEYS: {

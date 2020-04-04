@@ -142,7 +142,7 @@ struct RPCArg {
         OMITTED,
     };
     using Fallback = boost::variant<Optional, /* default value for optional args */ std::string>;
-    const std::string m_name; //!< The name of the arg (can be empty for inner args)
+    const std::string m_names; //!< The name of the arg (can be empty for inner args, can contain multiple aliases separated by |)
     const Type m_type;
     const std::vector<RPCArg> m_inner; //!< Only used for arrays or dicts
     const Fallback m_fallback;
@@ -157,7 +157,7 @@ struct RPCArg {
         const std::string description,
         const std::string oneline_description = "",
         const std::vector<std::string> type_str = {})
-        : m_name{std::move(name)},
+        : m_names{std::move(name)},
           m_type{std::move(type)},
           m_fallback{std::move(fallback)},
           m_description{std::move(description)},
@@ -175,7 +175,7 @@ struct RPCArg {
         const std::vector<RPCArg> inner,
         const std::string oneline_description = "",
         const std::vector<std::string> type_str = {})
-        : m_name{std::move(name)},
+        : m_names{std::move(name)},
           m_type{std::move(type)},
           m_inner{std::move(inner)},
           m_fallback{std::move(fallback)},
@@ -187,6 +187,9 @@ struct RPCArg {
     }
 
     bool IsOptional() const;
+
+    /** Return the first of all aliases. Throws when the argument is unnamed, i.e. an inner argument. */
+    std::string GetFirstName() const;
 
     /**
      * Return the type string of the argument.
@@ -323,6 +326,11 @@ class RPCMan
 public:
     using RPCMethod = std::function<UniValue(const RPCMan&, const JSONRPCRequest&)>;
     RPCMan(std::string name, std::string description, std::vector<RPCArg> args, RPCResults results, RPCExamples examples, RPCMethod fun);
+    struct HiddenArg {
+        const std::string m_name;
+        explicit HiddenArg(std::string name) : m_name{std::move(name)} {}
+    };
+    RPCMan(std::string name, std::string description, HiddenArg hidden_arg, RPCResults results, RPCExamples examples, RPCMethod fun);
 
     std::string ToString() const;
     /** If the supplied number of args is neither too small nor too high */
@@ -337,11 +345,16 @@ public:
         }
     }
 
+    std::string GetName() const { return m_name; };
+
+    std::vector<std::string> GetArgNames() const;
+
     const RPCMethod m_fun;
 
 private:
     const std::string m_name;
     const std::string m_description;
+    const std::string m_hidden_arg; //!< Only used when the RPC has one undocumented hidden arg, m_args is empty
     const std::vector<RPCArg> m_args;
     const RPCResults m_results;
     const RPCExamples m_examples;

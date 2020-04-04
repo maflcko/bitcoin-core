@@ -100,11 +100,13 @@ public:
     }
 
     //! Simplified constructor taking plain rpcfn_type function pointer.
-    CRPCCommand(const char* category, const char* name, rpcfn_type fn, std::initializer_list<const char*> args)
-        : CRPCCommand(category, name,
+    CRPCCommand(const char* category, const char* name_in, rpcfn_type fn, std::vector<std::string> args_in)
+        : CRPCCommand(category, fn().GetName(),
                       [fn](const JSONRPCRequest& request, UniValue& result, bool) { result = CALL_RPC_METHOD(fn, request); return true; },
-                      {args.begin(), args.end()}, intptr_t(fn))
+                      fn().GetArgNames(), intptr_t(fn))
     {
+        CHECK_NONFATAL(fn().GetName() == name_in);
+        CHECK_NONFATAL(fn().GetArgNames() == args_in);
     }
 
     std::string category;

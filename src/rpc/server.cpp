@@ -160,7 +160,7 @@ static RPCMan stop()
     static const std::string RESULT{PACKAGE_NAME " stopping"};
     return RPCMan{"stop",
                 "\nRequest a graceful shutdown of " PACKAGE_NAME ".",
-                {},
+                RPCMan::HiddenArg{"wait"},
                 RPCResult{RPCResult::Type::STR, "", "A string with the content '" + RESULT + "'"},
                 RPCExamples{""},
         [&](const RPCMan& self, const JSONRPCRequest& jsonRequest) -> UniValue
