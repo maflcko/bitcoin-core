@@ -600,21 +600,6 @@ std::string LicenseInfo()
            "\n";
 }
 
-#if HAVE_SYSTEM
-static void BlockNotifyCallback(SynchronizationState sync_state, const CBlockIndex* pBlockIndex)
-{
-    if (sync_state != SynchronizationState::POST_INIT || !pBlockIndex)
-        return;
-
-    std::string strCmd = gArgs.GetArg("-blocknotify", "");
-    if (!strCmd.empty()) {
-        boost::replace_all(strCmd, "%s", pBlockIndex->GetBlockHash().GetHex());
-        std::thread t(runCommand, strCmd);
-        t.detach(); // thread runs free
-    }
-}
-#endif
-
 static bool fHaveGenesis = false;
 static Mutex g_genesis_wait_mutex;
 static std::condition_variable g_genesis_wait_cv;
@@ -1847,8 +1832,20 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
     }
 
 #if HAVE_SYSTEM
-    if (gArgs.IsArgSet("-blocknotify"))
+    if (args.IsArgSet("-blocknotify")) {
+        const auto BlockNotifyCallback = [&args](SynchronizationState sync_state, const CBlockIndex* pBlockIndex) {
+            if (sync_state != SynchronizationState::POST_INIT || !pBlockIndex)
+                return;
+
+            std::string strCmd = args.GetArg("-blocknotify", "");
+            if (!strCmd.empty()) {
+                boost::replace_all(strCmd, "%s", pBlockIndex->GetBlockHash().GetHex());
+                std::thread t(runCommand, strCmd);
+                t.detach(); // thread runs free
+            }
+        };
         uiInterface.NotifyBlockTip_connect(BlockNotifyCallback);
+    }
 #endif
 
     std::vector<fs::path> vImportFiles;
