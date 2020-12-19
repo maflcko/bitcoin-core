@@ -36,7 +36,7 @@ global_task_template: &GLOBAL_TASK_TEMPLATE
     - git config --global user.name "ci"
     - git merge FETCH_HEAD  # Merge base to detect silent merge conflicts
   ci_script:
-    - ./ci/test_run_all.sh  #
+    - ./ci/test_run_all.sh
 
 #task:
 #  name: "Windows"
