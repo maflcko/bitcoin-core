@@ -1721,7 +1721,7 @@ enum class ParseContext {
     CLOSE_BRACKET,
 };
 
-int FindNextChar(Span<const char> in, const char m);
+int FindNextChar(Span<const char> in, char m);
 
 /** Parse a key string ending at the end of the fragment's text representation. */
 template<typename Key, typename Ctx>
